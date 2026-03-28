@@ -1,0 +1,119 @@
+import { useEffect, useState } from 'react'
+import { getVentasDia, getVentasPeriodo, getMetodosPago } from '../../services/api'
+import { PageHeader, Input, Btn, Card, StatCard } from '../../components/ui'
+import toast from 'react-hot-toast'
+
+export default function Reportes() {
+  const [ventasDia, setVentasDia] = useState(null)
+  const [metodosPago, setMetodosPago] = useState([])
+  const [periodo, setPeriodo] = useState({ inicio: '', fin: '' })
+  const [ventasPeriodo, setVentasPeriodo] = useState(null)
+  const [loading, setLoading] = useState(false)
+
+  useEffect(() => {
+    getVentasDia().then(r => setVentasDia(r.data.data)).catch(() => {})
+    getMetodosPago().then(r => {
+      const data = r.data.data
+      // Normalizar la respuesta — puede ser array, objeto, o null
+      if (Array.isArray(data)) setMetodosPago(data)
+      else if (data && typeof data === 'object') setMetodosPago(Object.entries(data).map(([k, v]) => ({ metodoPago: k, total: v })))
+      else setMetodosPago([])
+    }).catch(() => setMetodosPago([]))
+  }, [])
+
+  const buscarPeriodo = async (e) => {
+    e.preventDefault()
+    if (!periodo.inicio || !periodo.fin) return toast.error('Selecciona las fechas')
+    setLoading(true)
+    try {
+      const r = await getVentasPeriodo(periodo.inicio, periodo.fin)
+      setVentasPeriodo(r.data.data)
+    } catch { toast.error('Error al cargar reporte') }
+    finally { setLoading(false) }
+  }
+
+  const metodosArr = Array.isArray(metodosPago) ? metodosPago : []
+  const metodosTotal = metodosArr.reduce((a, m) => a + Number(m.total || 0), 0)
+
+  return (
+    <div className="fade-in">
+      <PageHeader title="Reportes" sub="Análisis de ventas y operaciones" />
+
+      <h2 style={{ fontFamily: 'Syne, sans-serif', fontSize: '16px', fontWeight: '700', color: '#888', marginBottom: '16px', textTransform: 'uppercase', letterSpacing: '.08em' }}>
+        📊 Resumen del día
+      </h2>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '14px', marginBottom: '32px' }}>
+        <StatCard icon="💰" label="Ventas totales" value={ventasDia ? `$${Number(ventasDia.totalVentas || 0).toLocaleString()}` : '...'} color="#22c55e" />
+        <StatCard icon="🧾" label="Facturas emitidas" value={ventasDia?.totalFacturas ?? '...'} color="#3b82f6" />
+        <StatCard icon="🎫" label="Ticket promedio" value={ventasDia ? `$${Number(ventasDia.ticketPromedio || 0).toLocaleString()}` : '...'} color="#f97316" />
+        <StatCard icon="❌" label="Pedidos cancelados" value={ventasDia?.pedidosCancelados ?? 0} color="#ef4444" />
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '32px' }}>
+        <Card>
+          <div style={{ padding: '20px', borderBottom: '1px solid #1e1e1e' }}>
+            <h3 style={{ fontFamily: 'Syne, sans-serif', fontSize: '16px', fontWeight: '700', color: '#f0f0f0' }}>
+              💳 Métodos de pago hoy
+            </h3>
+          </div>
+          <div style={{ padding: '16px' }}>
+            {metodosArr.length === 0 ? (
+              <div style={{ textAlign: 'center', color: '#555', padding: '20px', fontSize: '14px' }}>Sin datos hoy</div>
+            ) : metodosArr.map(m => {
+              const pct = metodosTotal > 0 ? (Number(m.total) / metodosTotal * 100).toFixed(1) : 0
+              return (
+                <div key={m.metodoPago} style={{ marginBottom: '14px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
+                    <span style={{ color: '#ccc', fontSize: '13px', fontWeight: '500' }}>{m.metodoPago}</span>
+                    <div style={{ textAlign: 'right' }}>
+                      <span style={{ color: '#f97316', fontWeight: '700', fontSize: '14px' }}>${Number(m.total).toLocaleString()}</span>
+                      <span style={{ color: '#555', fontSize: '11px', marginLeft: '8px' }}>{pct}%</span>
+                    </div>
+                  </div>
+                  <div style={{ background: '#1a1a1a', borderRadius: '4px', height: '6px' }}>
+                    <div style={{ background: '#f97316', borderRadius: '4px', height: '6px', width: `${pct}%`, transition: 'width .5s ease' }} />
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </Card>
+
+        <Card>
+          <div style={{ padding: '20px', borderBottom: '1px solid #1e1e1e' }}>
+            <h3 style={{ fontFamily: 'Syne, sans-serif', fontSize: '16px', fontWeight: '700', color: '#f0f0f0' }}>
+              📅 Ventas por período
+            </h3>
+          </div>
+          <div style={{ padding: '20px' }}>
+            <form onSubmit={buscarPeriodo}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '12px' }}>
+                <Input label="Fecha inicio" type="date" value={periodo.inicio} onChange={e => setPeriodo({ ...periodo, inicio: e.target.value })} />
+                <Input label="Fecha fin" type="date" value={periodo.fin} onChange={e => setPeriodo({ ...periodo, fin: e.target.value })} />
+              </div>
+              <Btn type="submit" disabled={loading}>{loading ? 'Cargando...' : 'Consultar período'}</Btn>
+            </form>
+
+            {ventasPeriodo && (
+              <div style={{ marginTop: '20px', background: '#1a1a1a', borderRadius: '12px', padding: '16px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                  {[
+                    { label: 'Total ventas', value: `$${Number(ventasPeriodo.totalVentas || 0).toLocaleString()}`, color: '#22c55e' },
+                    { label: 'Facturas', value: ventasPeriodo.totalFacturas || 0, color: '#3b82f6' },
+                    { label: 'Ticket prom.', value: `$${Number(ventasPeriodo.ticketPromedio || 0).toLocaleString()}`, color: '#f97316' },
+                    { label: 'Cancelados', value: ventasPeriodo.pedidosCancelados || 0, color: '#ef4444' },
+                  ].map(s => (
+                    <div key={s.label} style={{ textAlign: 'center', padding: '12px', background: '#111', borderRadius: '10px' }}>
+                      <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '20px', fontWeight: '800', color: s.color }}>{s.value}</div>
+                      <div style={{ color: '#666', fontSize: '11px', marginTop: '4px' }}>{s.label}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </Card>
+      </div>
+    </div>
+  )
+}
