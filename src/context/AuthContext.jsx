@@ -13,14 +13,15 @@ export function AuthProvider({ children }) {
     setLoading(false)
   }, [])
 
-  const login = async (email, password) => {
-    const res = await loginApi({ email, password })
-    const data = res.data.data
-    sessionStorage.setItem('token', data.token)
-    sessionStorage.setItem('user', JSON.stringify(data))
-    setUser(data)
-    return data
-  }
+// ✅ CORRECCIÓN: Añade llaves a los parámetros
+const login = async ({ email, password }) => { 
+  const res = await loginApi({ email, password });
+  const data = res.data.data;
+  sessionStorage.setItem('token', data.token);
+  sessionStorage.setItem('user', JSON.stringify(data));
+  setUser(data);
+  return data;
+};
 
   const logout = () => {
     sessionStorage.clear()
