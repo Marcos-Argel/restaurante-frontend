@@ -1,13 +1,20 @@
 import axios from "axios";
 
 const api = axios.create({
+  // Asegúrate de usar HTTPS siempre para evitar redirecciones de protocolo
   baseURL: import.meta.env.VITE_API_URL || "https://restaurante-backend-h125.onrender.com/api",
   headers: { "Content-Type": "application/json" },
 });
 api.interceptors.request.use((config) => {
   const token = sessionStorage.getItem("token");
-  if (token) config.headers.Authorization = `Bearer ${token}`;
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  // Log de depuración técnica para ver qué método sale realmente del cliente
+  console.log(`🚀 Enviando ${config.method?.toUpperCase()} a: ${config.url}`);
   return config;
+}, (error) => {
+  return Promise.reject(error);
 });
 
 api.interceptors.response.use(
