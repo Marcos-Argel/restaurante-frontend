@@ -1,7 +1,17 @@
 import axios from "axios";
 
 const api = axios.create({
-  // Asegúrate de usar HTTPS siempre para evitar redirecciones de protocolo
+<<<<<<<<< Temporary merge branch 1
+ baseURL: 'https://restaurante-backend-2mpl.onrender.com/api',
+  headers: { 'Content-Type': 'application/json' }
+})
+
+api.interceptors.request.use(config => {
+  const token = sessionStorage.getItem('token')
+  if (token) config.headers.Authorization = `Bearer ${token}`
+  return config
+})
+=========
   baseURL: import.meta.env.VITE_API_URL || "https://restaurante-backend-h125.onrender.com/api",
   headers: { "Content-Type": "application/json" },
 });
