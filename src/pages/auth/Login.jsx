@@ -32,18 +32,29 @@ export default function Login() {
     if (!validar()) return;
     setLoading(true);
     setErrores({ email: "", password: "", general: "" });
+
     try {
+      // Aseguramos que los datos van sin espacios que puedan romper las validaciones de Spring (@Email)
       await login({
-        email: form.email,
+        email: form.email.trim().toLowerCase(),
         password: form.password,
       });
+
       toast.success("Bienvenido al sistema");
       navigate("/");
     } catch (err) {
+      console.error("❌ Error completo del servidor:", err.response?.data); // VITAL para ver el JSON de error
+
+      // Si el backend lanza el error de "Method GET not supported", lo capturamos aquí
+      const mensajeServidor = err.response?.data?.message || "";
+
       const msg =
         err.response?.status === 401
           ? "Correo o contraseña incorrectos"
-          : "Error al conectar con el servidor";
+          : mensajeServidor.includes("GET")
+            ? "Error de configuración de red (POST transformado en GET)"
+            : "Error al conectar con el servidor";
+
       setErrores((prev) => ({ ...prev, general: msg }));
     } finally {
       setLoading(false);
