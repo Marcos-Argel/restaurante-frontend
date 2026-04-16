@@ -1,7 +1,7 @@
 import axios from "axios";
 
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || "https://restaurante-backend-h125.onrender.com/api",
+  baseURL: import.meta.env.VITE_API_URL || "http://localhost:8080/api",
   headers: { "Content-Type": "application/json" },
 });
 api.interceptors.request.use((config) => {
@@ -10,7 +10,7 @@ api.interceptors.request.use((config) => {
     config.headers.Authorization = `Bearer ${token}`;
   }
   // Log de depuración técnica para ver qué método sale realmente del cliente
-  console.log(`🚀 Enviando ${config.method?.toUpperCase()} a: ${config.url}`);
+  console.log(`Enviando ${config.method?.toUpperCase()} a: ${config.url}`);
   return config;
 }, (error) => {
   return Promise.reject(error);
