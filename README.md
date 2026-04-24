@@ -34,21 +34,37 @@ Interfaz de usuario para sistema de gestión de restaurante desarrollada con **R
 
 ## 📂 Estructura del proyecto
 src/
+
 ├── components/     # Componentes reutilizables (Layout, UI)
+
 ├── context/        # AuthContext (manejo de sesión)
+
 ├── pages/          # Vistas por módulo
+
 │   ├── auth/
+
 │   ├── dashboard/
+
 │   ├── mesas/
+
 │   ├── pedidos/
+
 │   ├── cocina/
+
 │   ├── productos/
+
 │   ├── inventario/
+
 │   ├── facturas/
+
 │   ├── reservas/
+
 │   ├── proveedores/
+
 │   ├── reportes/
+
 │   └── usuarios/
+
 └── services/       # Configuración de API (Axios)
 
 ---
