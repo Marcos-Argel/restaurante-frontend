@@ -14,6 +14,7 @@ const nav = [
   { path: '/reservas',   icon: '📅', label: 'Reservas',   roles: ['ADMIN','GERENTE','MESERO'] },
   { path: '/usuarios',   icon: '👥', label: 'Usuarios',   roles: ['ADMIN','GERENTE'] },
   { path: '/recetas',    icon: '🧪', label: 'Recetas',    roles: ['ADMIN','GERENTE'] },
+  { path: '/proveedores',icon: '🚚', label: 'Proveedores', roles: ['ADMIN','GERENTE'] },
   { path: '/reportes',   icon: '📈', label: 'Reportes',   roles: ['ADMIN','GERENTE'] },
 ]
 

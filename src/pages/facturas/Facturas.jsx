@@ -7,6 +7,7 @@ const METODOS = ['EFECTIVO', 'TARJETA_DEBITO', 'TARJETA_CREDITO', 'TRANSFERENCIA
 
 function imprimirFactura(f) {
   const win = window.open('', '_blank', 'width=400,height=600')
+  const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=https://restaurante-frontend-k7h8.onrender.com/inicio&bgcolor=ffffff&color=000000`
   win.document.write(`
     <html><head><title>Factura ${f.numeroFactura}</title>
     <style>
@@ -21,8 +22,8 @@ function imprimirFactura(f) {
     </style></head>
     <body>
       <div class="center">
-        <div class="title">🔥 Fast &  Healthy 🔥</div>
-        <div>Barrio parroquial, diagonal al supermercado</div>
+        <div class="title">🔥 Fast & Healthy 🔥</div>
+        <div>Currulao, por el parque</div>
         <div>Tel: 3155400005</div>
       </div>
       <div class="line"></div>
@@ -31,7 +32,6 @@ function imprimirFactura(f) {
       <div class="row"><span class="bold">Fecha:</span><span>${(f.fecha || f.fechaEmision) ? new Date(f.fecha || f.fechaEmision).toLocaleString('es-CO') : '—'}</span></div>
       ${f.clienteNombre ? `<div class="row"><span class="bold">Cliente:</span><span>${f.clienteNombre}</span></div>` : ''}
       ${f.cajero ? `<div class="row"><span class="bold">Cajero:</span><span>${f.cajero}</span></div>` : ''}
-      <div style="text-align:center;margin:12px 0 4px 0"><div style="font-size:10px;color:#999;margin-bottom:5px">Escanea para más info</div><img src="https://api.qrserver.com/v1/create-qr-code/?size=80x80&data=https://fast-healthy.railway.app/login" alt="QR" style="width:80px;height:80px" /></div>
       <div class="line"></div>
       <div class="bold">DETALLE:</div>
       ${(f.items || []).map(i => `
@@ -48,8 +48,15 @@ function imprimirFactura(f) {
       ${f.montoPagado ? `<div class="row"><span>Pagó:</span><span>$${Number(f.montoPagado).toLocaleString()}</span></div>` : ''}
       ${f.cambio ? `<div class="row"><span>Cambio:</span><span>$${Number(f.cambio).toLocaleString()}</span></div>` : ''}
       <div class="line"></div>
-      <div class="center">¡Gracias por su visita!</div>
-      <div class="center" style="margin-top:8px">
+      <div class="center" style="margin: 12px 0">
+        <div style="font-size:10px;color:#666;margin-bottom:6px;letter-spacing:.05em">ESCANEA Y VISÍTANOS</div>
+        <img src="${qrUrl}" alt="QR Fast & Healthy" style="width:100px;height:100px" />
+        <div style="font-size:9px;color:#999;margin-top:4px">fast-healthy.onrender.com</div>
+      </div>
+      <div class="line"></div>
+      <div class="center" style="font-size:14px">¡Gracias por su visita!</div>
+      <div class="center" style="font-size:11px;color:#666;margin-top:4px">Vuelve pronto 🐔</div>
+      <div class="center" style="margin-top:12px">
         <button onclick="window.print()" style="padding:8px 20px;font-size:14px;cursor:pointer">🖨️ Imprimir</button>
       </div>
     </body></html>
@@ -82,9 +89,12 @@ export default function Facturas() {
     const anioActual = ahora.getFullYear()
     const getFecha = (f) => f.fecha || f.fechaEmision || null
     if (filtro === 'HOY') return facturas.filter(f => {
-      const fecha = getFecha(f)
-      return fecha && new Date(fecha).toISOString().split('T')[0] === hoy
-    })
+  const fecha = getFecha(f)
+  if (!fecha) return false
+  const d = new Date(fecha)
+  const fechaLocal = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`
+  return fechaLocal === hoy
+})
     if (filtro === 'SEMANA') return facturas.filter(f => {
       const fecha = getFecha(f)
       return fecha && new Date(fecha) >= inicioSemana
