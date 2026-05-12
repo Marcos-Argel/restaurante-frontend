@@ -3,6 +3,10 @@ import { Toaster } from 'react-hot-toast'
 import { AuthProvider, useAuth } from './context/AuthContext'
 import Layout from './components/layout/Layout'
 import Login from './pages/auth/Login'
+import Register from './pages/auth/Register'
+import ForgotPassword from './pages/auth/ForgotPassword'
+import ResetPassword from './pages/auth/ResetPassword'
+import MenuCliente from './pages/cliente/MenuCliente'
 import Dashboard from './pages/dashboard/Dashboard'
 import Mesas from './pages/mesas/Mesas'
 import Pedidos from './pages/pedidos/Pedidos'
@@ -14,6 +18,8 @@ import Usuarios from './pages/usuarios/Usuarios'
 import Reservas from './pages/reservas/Reservas'
 import Reportes from './pages/reportes/Reportes'
 import Recetas from './pages/recetas/Recetas'
+import Proveedores from './pages/proveedores/Proveedores'
+import PaginaPublica from './pages/publica/PaginaPublica'
 
 function PrivateRoute({ children, roles }) {
   const { user, loading } = useAuth()
@@ -31,6 +37,14 @@ function PrivateRoute({ children, roles }) {
   return <Layout>{children}</Layout>
 }
 
+function ClienteRoute({ children }) {
+  const { user, loading } = useAuth()
+  if (loading) return null
+  if (!user) return <Navigate to="/login" replace />
+  if (user.rol !== 'CLIENTE') return <Navigate to="/" replace />
+  return children
+}
+
 export default function App() {
   return (
     <AuthProvider>
@@ -44,7 +58,17 @@ export default function App() {
           }}
         />
         <Routes>
+          {/* Rutas públicas */}
+          <Route path="/inicio" element={<PaginaPublica />} />
           <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
+
+          {/* Ruta cliente */}
+          <Route path="/menu" element={<ClienteRoute><MenuCliente /></ClienteRoute>} />
+
+          {/* Rutas del sistema */}
           <Route path="/" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
           <Route path="/mesas" element={<PrivateRoute roles={['ADMIN','GERENTE','MESERO','BARTENDER']}><Mesas /></PrivateRoute>} />
           <Route path="/pedidos" element={<PrivateRoute roles={['ADMIN','GERENTE','MESERO','CAJERO','BARTENDER']}><Pedidos /></PrivateRoute>} />
@@ -56,6 +80,7 @@ export default function App() {
           <Route path="/usuarios" element={<PrivateRoute roles={['ADMIN','GERENTE']}><Usuarios /></PrivateRoute>} />
           <Route path="/reportes" element={<PrivateRoute roles={['ADMIN','GERENTE']}><Reportes /></PrivateRoute>} />
           <Route path="/recetas" element={<PrivateRoute roles={['ADMIN','GERENTE']}><Recetas /></PrivateRoute>} />
+          <Route path="/proveedores" element={<PrivateRoute roles={['ADMIN','GERENTE']}><Proveedores /></PrivateRoute>} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </BrowserRouter>

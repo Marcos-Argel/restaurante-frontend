@@ -7,122 +7,57 @@ import { PageHeader, Modal, Input, Select, Btn, Badge, Card, Table, Tr, Td } fro
 import toast from 'react-hot-toast'
 import api from '../../services/api'
 
-// ── Vista MENÚ tipo carta con subcategorías ───────────────
+const CLOUDINARY_CLOUD = 'dyjqz2q6w'
+const CLOUDINARY_PRESET = 'restaurante_productos'
+
+async function subirImagenCloudinary(archivo) {
+  const formData = new FormData()
+  formData.append('file', archivo)
+  formData.append('upload_preset', CLOUDINARY_PRESET)
+  formData.append('folder', 'restaurante/productos')
+  const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD}/image/upload`, {
+    method: 'POST',
+    body: formData
+  })
+  const data = await res.json()
+  if (!data.secure_url) throw new Error('Error al subir imagen')
+  return data.secure_url
+}
+
+// ── Vista MENÚ tipo carta ─────────────────────────────────
 function VistaMenu({ productos, categorias }) {
   const activos = productos.filter(p => p.estado === 'ACTIVO')
   const fmt = (p) => `$${Number(p).toLocaleString('es-CO')}`
 
   return (
     <div style={{ background: '#0a0a0a', minHeight: '100vh' }}>
-      {/* Header */}
       <div style={{ textAlign: 'center', padding: '32px 20px 24px', borderBottom: '2px solid #f97316' }}>
         <div style={{ fontSize: 36, marginBottom: 8 }}>🍽️</div>
         <h1 style={{ fontFamily: 'Poppins, sans-serif', fontSize: 32, fontWeight: 800, color: '#f0f0f0', letterSpacing: '-1px' }}>
           NUESTRA CARTA
         </h1>
-        <p style={{ color: '#666', fontSize: 14, marginTop: 6 }}>
-          {activos.length} productos disponibles
-        </p>
+        <p style={{ color: '#666', fontSize: 14, marginTop: 6 }}>{activos.length} productos disponibles</p>
       </div>
 
       <div style={{ maxWidth: 960, margin: '0 auto', padding: '28px 20px' }}>
         {categorias.map(cat => {
           const prodsCat = activos.filter(p => p.categoria?.id === cat.id || p.categoria?.nombre === cat.nombre)
           if (!prodsCat.length) return null
-
-          // Agrupar por subcategoría
-          const subgrupos = {}
-          prodsCat.forEach(p => {
-            const sub = p.subcategoria || ''
-            if (!subgrupos[sub]) subgrupos[sub] = []
-            subgrupos[sub].push(p)
-          })
-          const tieneSubcats = Object.keys(subgrupos).some(k => k !== '')
-
           return (
             <div key={cat.id} style={{ marginBottom: 44 }}>
-              {/* Título categoría */}
               <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
                 <div style={{ flex: 1, height: 2, background: 'linear-gradient(to right, transparent, #f97316)' }} />
-                <div style={{
-                  background: '#f97316', color: '#fff', padding: '8px 24px',
-                  borderRadius: 24, fontFamily: 'Poppins, sans-serif', fontWeight: 800,
-                  fontSize: 14, textTransform: 'uppercase', letterSpacing: '.12em',
-                  display: 'flex', alignItems: 'center', gap: 8, boxShadow: '0 0 20px #f9731644'
-                }}>
-                  {cat.icono && <span>{cat.icono}</span>}
-                  {cat.nombre}
+                <div style={{ background: '#f97316', color: '#fff', padding: '8px 24px', borderRadius: 24, fontFamily: 'Poppins, sans-serif', fontWeight: 800, fontSize: 14, textTransform: 'uppercase', letterSpacing: '.12em', display: 'flex', alignItems: 'center', gap: 8, boxShadow: '0 0 20px #f9731644' }}>
+                  {cat.icono && <span>{cat.icono}</span>}{cat.nombre}
                 </div>
                 <div style={{ flex: 1, height: 2, background: 'linear-gradient(to left, transparent, #f97316)' }} />
               </div>
-
-              {tieneSubcats ? (
-                // ── Con subcategorías: columnas lado a lado ──
-                <div>
-                  {/* Primero los productos sin subcategoría */}
-                  {subgrupos[''] && subgrupos[''].length > 0 && (
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 12, marginBottom: 20 }}>
-                      {subgrupos[''].map(p => <ProductoCard key={p.id} p={p} fmt={fmt} />)}
-                    </div>
-                  )}
-
-                  {/* Subcategorías en columnas */}
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 16 }}>
-                    {Object.entries(subgrupos).filter(([k]) => k !== '').map(([sub, prods]) => (
-                      <div key={sub} style={{ background: '#111', border: '1px solid #1e1e1e', borderRadius: 16, overflow: 'hidden' }}>
-                        {/* Header subcategoría */}
-                        <div style={{ background: '#1a1a1a', padding: '10px 16px', borderBottom: '1px solid #1e1e1e', display: 'flex', alignItems: 'center', gap: 8 }}>
-                          <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#f97316', flexShrink: 0 }} />
-                          <span style={{ fontFamily: 'Poppins, sans-serif', fontWeight: 700, fontSize: 13, color: '#f97316', textTransform: 'uppercase', letterSpacing: '.08em' }}>
-                            {sub}
-                          </span>
-                        </div>
-                        {/* Productos de esta subcategoría */}
-                        <div style={{ padding: '8px 0' }}>
-                          {prods.map(p => (
-                            <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 16px', borderBottom: '1px solid #161616' }}>
-                              <div style={{ flex: 1 }}>
-                                <div style={{ fontSize: 14, fontWeight: 600, color: '#f0f0f0' }}>{p.nombre}</div>
-                                {p.descripcion && <div style={{ fontSize: 11, color: '#555', marginTop: 2 }}>{p.descripcion}</div>}
-                              </div>
-                              <div style={{ textAlign: 'right', flexShrink: 0, marginLeft: 12 }}>
-                                <div style={{ fontFamily: 'Poppins, sans-serif', fontSize: 16, fontWeight: 800, color: '#f97316' }}>{fmt(p.precio)}</div>
-                                {p.estado === 'AGOTADO' && <div style={{ fontSize: 10, color: '#fca5a5', background: '#450a0a', padding: '1px 6px', borderRadius: 6, marginTop: 2 }}>AGOTADO</div>}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ) : (
-                // ── Sin subcategorías: grid normal ──
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 14 }}>
-                  {prodsCat.map(p => <ProductoCard key={p.id} p={p} fmt={fmt} />)}
-                </div>
-              )}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 14 }}>
+                {prodsCat.map(p => <ProductoCard key={p.id} p={p} fmt={fmt} />)}
+              </div>
             </div>
           )
         })}
-
-        {/* Productos sin categoría */}
-        {(() => {
-          const sinCat = activos.filter(p => !p.categoria)
-          if (!sinCat.length) return null
-          return (
-            <div style={{ marginBottom: 40 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 18 }}>
-                <div style={{ flex: 1, height: 1, background: '#1e1e1e' }} />
-                <div style={{ background: '#333', color: '#aaa', padding: '6px 20px', borderRadius: 20, fontFamily: 'Poppins, sans-serif', fontWeight: 700, fontSize: 13, textTransform: 'uppercase' }}>OTROS</div>
-                <div style={{ flex: 1, height: 1, background: '#1e1e1e' }} />
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 14 }}>
-                {sinCat.map(p => <ProductoCard key={p.id} p={p} fmt={fmt} />)}
-              </div>
-            </div>
-          )
-        })()}
       </div>
     </div>
   )
@@ -130,25 +65,33 @@ function VistaMenu({ productos, categorias }) {
 
 function ProductoCard({ p, fmt }) {
   return (
-    <div style={{ background: '#111', border: '1px solid #1e1e1e', borderRadius: 14, padding: '16px 18px', transition: 'border-color .2s' }}
+    <div style={{ background: '#111', border: '1px solid #1e1e1e', borderRadius: 14, overflow: 'hidden', transition: 'border-color .2s' }}
       onMouseEnter={e => e.currentTarget.style.borderColor = '#f97316'}
       onMouseLeave={e => e.currentTarget.style.borderColor = '#1e1e1e'}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10 }}>
-        <div style={{ flex: 1 }}>
-          <div style={{ fontFamily: 'Poppins, sans-serif', fontWeight: 700, fontSize: 15, color: '#f0f0f0', marginBottom: 4 }}>{p.nombre}</div>
-          {p.descripcion && <div style={{ fontSize: 12, color: '#666', lineHeight: 1.5 }}>{p.descripcion}</div>}
-          {p.tiempoPreparacion && <div style={{ fontSize: 11, color: '#555', marginTop: 6 }}>⏱️ {p.tiempoPreparacion} min</div>}
-        </div>
-        <div style={{ textAlign: 'right', flexShrink: 0 }}>
-          <div style={{ fontFamily: 'Poppins, sans-serif', fontSize: 20, fontWeight: 800, color: '#f97316' }}>{fmt(p.precio)}</div>
-          {p.estado === 'AGOTADO' && <div style={{ fontSize: 10, color: '#fca5a5', background: '#450a0a', padding: '2px 8px', borderRadius: 8, marginTop: 4 }}>AGOTADO</div>}
+      {/* Imagen */}
+      {p.imagenUrl ? (
+        <img src={p.imagenUrl} alt={p.nombre} style={{ width: '100%', height: 160, objectFit: 'cover' }} />
+      ) : (
+        <div style={{ width: '100%', height: 160, background: '#1a1a1a', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 48 }}>🍽️</div>
+      )}
+      <div style={{ padding: '14px 16px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10 }}>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontFamily: 'Poppins, sans-serif', fontWeight: 700, fontSize: 15, color: '#f0f0f0', marginBottom: 4 }}>{p.nombre}</div>
+            {p.descripcion && <div style={{ fontSize: 12, color: '#666', lineHeight: 1.5 }}>{p.descripcion}</div>}
+            {p.tiempoPreparacion && <div style={{ fontSize: 11, color: '#555', marginTop: 6 }}>⏱️ {p.tiempoPreparacion} min</div>}
+          </div>
+          <div style={{ textAlign: 'right', flexShrink: 0 }}>
+            <div style={{ fontFamily: 'Poppins, sans-serif', fontSize: 20, fontWeight: 800, color: '#f97316' }}>{fmt(p.precio)}</div>
+            {p.estado === 'AGOTADO' && <div style={{ fontSize: 10, color: '#fca5a5', background: '#450a0a', padding: '2px 8px', borderRadius: 8, marginTop: 4 }}>AGOTADO</div>}
+          </div>
         </div>
       </div>
     </div>
   )
 }
 
-// ── Gestión de categorías ────────────────────────────────
+// ── Gestión de categorías ─────────────────────────────────
 function CategoriasPanel({ categorias, onRefresh }) {
   const [modal, setModal] = useState(false)
   const [editando, setEditando] = useState(null)
@@ -234,7 +177,11 @@ export default function Productos() {
   const [modal, setModal] = useState(false)
   const [editando, setEditando] = useState(null)
   const [filtro, setFiltro] = useState('')
-  const [form, setForm] = useState({ nombre: '', descripcion: '', precio: '', categoriaId: '', tiempoPreparacion: '', esPreparado: true, subcategoria: '' })
+  const [subiendoImagen, setSubiendoImagen] = useState(false)
+  const [form, setForm] = useState({
+    nombre: '', descripcion: '', precio: '', categoriaId: '',
+    tiempoPreparacion: '', esPreparado: true, subcategoria: '', imagenUrl: ''
+  })
 
   const cargar = () => {
     getProductos().then(r => setProductos(r.data.data || []))
@@ -245,21 +192,39 @@ export default function Productos() {
 
   const abrirModal = (p = null) => {
     if (p) {
-      setForm({ nombre: p.nombre, descripcion: p.descripcion || '', precio: p.precio, categoriaId: p.categoria?.id || '', tiempoPreparacion: p.tiempoPreparacion || '', esPreparado: p.esPreparado, subcategoria: p.subcategoria || '' })
+      setForm({
+        nombre: p.nombre, descripcion: p.descripcion || '', precio: p.precio,
+        categoriaId: p.categoria?.id || '', tiempoPreparacion: p.tiempoPreparacion || '',
+        esPreparado: p.esPreparado, subcategoria: p.subcategoria || '', imagenUrl: p.imagenUrl || ''
+      })
       setEditando(p)
     } else {
-      setForm({ nombre: '', descripcion: '', precio: '', categoriaId: '', tiempoPreparacion: '', esPreparado: true, subcategoria: '' })
+      setForm({ nombre: '', descripcion: '', precio: '', categoriaId: '', tiempoPreparacion: '', esPreparado: true, subcategoria: '', imagenUrl: '' })
       setEditando(null)
     }
     setModal(true)
   }
 
+  const handleImagen = async (e) => {
+    const archivo = e.target.files[0]
+    if (!archivo) return
+    if (archivo.size > 5 * 1024 * 1024) return toast.error('La imagen no puede superar 5MB')
+    setSubiendoImagen(true)
+    try {
+      const url = await subirImagenCloudinary(archivo)
+      setForm(f => ({ ...f, imagenUrl: url }))
+      toast.success('Imagen subida correctamente')
+    } catch {
+      toast.error('Error al subir la imagen')
+    } finally {
+      setSubiendoImagen(false)
+    }
+  }
+
   const guardar = async (e) => {
     e.preventDefault()
-    if (/^[0-9]+$/.test(form.nombre?.trim()))
-      return toast.error('El nombre del producto no puede ser solo números')
+    if (/^[0-9]+$/.test(form.nombre?.trim())) return toast.error('El nombre no puede ser solo números')
     if (Number(form.precio) < 0) return toast.error('El precio no puede ser negativo')
-    if (form.tiempoPreparacion && Number(form.tiempoPreparacion) < 0) return toast.error('El tiempo de preparación no puede ser negativo')
     try {
       if (editando) { await actualizarProducto(editando.id, form); toast.success('Producto actualizado') }
       else { await crearProducto(form); toast.success('Producto creado') }
@@ -273,15 +238,14 @@ export default function Productos() {
   }
 
   const eliminarProd = async (id, nombre) => {
-    if (!window.confirm(`¿Eliminar el producto "${nombre}"? Esta acción no se puede deshacer.`)) return
+    if (!window.confirm(`¿Eliminar el producto "${nombre}"?`)) return
     try { await eliminarProducto(id); toast.success('Producto eliminado'); cargar() }
     catch (err) { toast.error(err.response?.data?.message || 'No se puede eliminar el producto') }
   }
 
   const productosFiltrados = productos.filter(p =>
     p.nombre.toLowerCase().includes(filtro.toLowerCase()) ||
-    (p.categoria?.nombre || '').toLowerCase().includes(filtro.toLowerCase()) ||
-    (p.subcategoria || '').toLowerCase().includes(filtro.toLowerCase())
+    (p.categoria?.nombre || '').toLowerCase().includes(filtro.toLowerCase())
   )
 
   const btnVista = (v, label, icon) => (
@@ -330,13 +294,19 @@ export default function Productos() {
       {vista === 'lista' && (
         <>
           <div style={{ marginBottom: 16 }}>
-            <input placeholder="🔍 Buscar producto, categoría o subcategoría..." value={filtro} onChange={e => setFiltro(e.target.value)}
+            <input placeholder="🔍 Buscar producto o categoría..." value={filtro} onChange={e => setFiltro(e.target.value)}
               style={{ background: '#111', border: '1px solid #2a2a2a', borderRadius: 10, padding: '10px 16px', color: '#f0f0f0', fontSize: 14, outline: 'none', width: 360 }} />
           </div>
           <Card>
-            <Table headers={['Producto', 'Categoría', 'Subcategoría', 'Precio', 'Estado', 'Acciones']}>
+            <Table headers={['', 'Producto', 'Categoría', 'Precio', 'Estado', 'Acciones']}>
               {productosFiltrados.map(p => (
                 <Tr key={p.id}>
+                  <Td>
+                    {p.imagenUrl
+                      ? <img src={p.imagenUrl} alt={p.nombre} style={{ width: 48, height: 48, borderRadius: 8, objectFit: 'cover', border: '1px solid #2a2a2a' }} />
+                      : <div style={{ width: 48, height: 48, borderRadius: 8, background: '#1a1a1a', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, border: '1px solid #2a2a2a' }}>🍽️</div>
+                    }
+                  </Td>
                   <Td>
                     <div style={{ fontWeight: 600, color: '#f0f0f0' }}>{p.nombre}</div>
                     {p.descripcion && <div style={{ color: '#666', fontSize: 12, marginTop: 2 }}>{p.descripcion.substring(0, 45)}{p.descripcion.length > 45 ? '...' : ''}</div>}
@@ -347,13 +317,6 @@ export default function Productos() {
                           {categorias.find(c => c.id === p.categoria?.id)?.icono || '🏷️'} {p.categoria?.nombre}
                         </span>
                       : <span style={{ color: '#555', fontSize: 12 }}>Sin categoría</span>}
-                  </Td>
-                  <Td>
-                    {p.subcategoria
-                      ? <span style={{ background: '#1e1e1e', border: '1px solid #2a2a2a', borderRadius: 6, padding: '3px 10px', fontSize: 12, color: '#f97316' }}>
-                          {p.subcategoria}
-                        </span>
-                      : <span style={{ color: '#333', fontSize: 12 }}>—</span>}
                   </Td>
                   <Td><span style={{ color: '#f97316', fontWeight: 700, fontSize: 15 }}>${Number(p.precio).toLocaleString()}</span></Td>
                   <Td><Badge estado={p.estado} /></Td>
@@ -389,41 +352,43 @@ export default function Productos() {
               <option value="">Seleccionar categoría</option>
               {categorias.map(c => <option key={c.id} value={c.id}>{c.icono || '🏷️'} {c.nombre}</option>)}
             </Select>
-
-            {/* Campo subcategoría */}
-            <div style={{ marginBottom: 14 }}>
-              <label style={{ display: 'block', fontSize: 12, color: '#aaa', marginBottom: 6, fontWeight: 500 }}>
-                Subcategoría <span style={{ color: '#555' }}>(opcional — ej: "En Agua", "En Leche", "Pequeño", "Grande")</span>
-              </label>
-              <input
-                value={form.subcategoria}
-                onChange={e => setForm({ ...form, subcategoria: e.target.value })}
-                placeholder="Ej: En Agua"
-                style={{ width: '100%', background: '#1a1a1a', border: '1px solid #2a2a2a', borderRadius: 10, padding: '10px 13px', color: '#f0f0f0', fontSize: 14, outline: 'none' }}
-                onFocus={e => e.target.style.borderColor = '#f97316'}
-                onBlur={e => e.target.style.borderColor = '#2a2a2a'}
-              />
-              {/* Sugerencias rápidas */}
-              <div style={{ display: 'flex', gap: 6, marginTop: 8, flexWrap: 'wrap' }}>
-                {['En Agua', 'En Leche', 'Pequeño', 'Grande', 'Personal', 'Familiar', 'Sin hielo'].map(s => (
-                  <button key={s} type="button" onClick={() => setForm({ ...form, subcategoria: s })} style={{
-                    background: form.subcategoria === s ? '#f9731622' : '#111',
-                    border: `1px solid ${form.subcategoria === s ? '#f97316' : '#2a2a2a'}`,
-                    borderRadius: 20, padding: '3px 10px', color: form.subcategoria === s ? '#f97316' : '#666',
-                    fontSize: 11, cursor: 'pointer', fontWeight: 600
-                  }}>{s}</button>
-                ))}
-                {form.subcategoria && <button type="button" onClick={() => setForm({ ...form, subcategoria: '' })} style={{ background: '#1c1917', border: '1px solid #44403c', borderRadius: 20, padding: '3px 10px', color: '#a8a29e', fontSize: 11, cursor: 'pointer' }}>✕ Quitar</button>}
-              </div>
-            </div>
-
             <Select label="Tipo" value={form.esPreparado} onChange={e => setForm({ ...form, esPreparado: e.target.value === 'true' })}>
               <option value="true">👨‍🍳 Preparado en cocina</option>
               <option value="false">📦 Producto empacado</option>
             </Select>
+
+            {/* FOTO DEL PRODUCTO */}
+            <div style={{ marginBottom: 14 }}>
+              <label style={{ display: 'block', fontSize: 12, color: '#aaa', marginBottom: 8, fontWeight: 500 }}>
+                📸 Foto del producto
+              </label>
+              <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+                {/* Preview */}
+                <div style={{ width: 80, height: 80, borderRadius: 10, overflow: 'hidden', border: '1px solid #2a2a2a', flexShrink: 0, background: '#1a1a1a', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28 }}>
+                  {form.imagenUrl
+                    ? <img src={form.imagenUrl} alt="preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    : '🍽️'
+                  }
+                </div>
+                <div style={{ flex: 1 }}>
+                  <label style={{ display: 'block', background: subiendoImagen ? '#1a1a1a' : '#1e3a5f22', border: '1px dashed #3b82f6', borderRadius: 10, padding: '10px 14px', cursor: subiendoImagen ? 'not-allowed' : 'pointer', textAlign: 'center', color: '#93c5fd', fontSize: 12, fontWeight: 600 }}>
+                    {subiendoImagen ? '⏳ Subiendo...' : '📁 Seleccionar imagen'}
+                    <input type="file" accept="image/*" onChange={handleImagen} disabled={subiendoImagen} style={{ display: 'none' }} />
+                  </label>
+                  {form.imagenUrl && (
+                    <button type="button" onClick={() => setForm(f => ({ ...f, imagenUrl: '' }))}
+                      style={{ marginTop: 6, background: 'none', border: 'none', color: '#666', fontSize: 11, cursor: 'pointer', textDecoration: 'underline' }}>
+                      Quitar imagen
+                    </button>
+                  )}
+                  <div style={{ fontSize: 10, color: '#555', marginTop: 4 }}>PNG, JPG o WebP — máx 5MB</div>
+                </div>
+              </div>
+            </div>
+
             <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 8 }}>
               <Btn variant="secondary" type="button" onClick={() => setModal(false)}>Cancelar</Btn>
-              <Btn type="submit">{editando ? 'Actualizar' : 'Crear'}</Btn>
+              <Btn type="submit" disabled={subiendoImagen}>{editando ? 'Actualizar' : 'Crear'}</Btn>
             </div>
           </form>
         </Modal>

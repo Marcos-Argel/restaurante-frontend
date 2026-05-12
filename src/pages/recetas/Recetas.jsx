@@ -31,12 +31,23 @@ export default function Recetas() {
   const guardar = async (e) => {
     e.preventDefault()
     if (!form.inventarioId) return toast.error('Selecciona un ingrediente')
-    if (!form.cantidadUsada || Number(form.cantidadUsada) <= 0) return toast.error('La cantidad debe ser mayor a 0')
+
+    const cantidad = Number(form.cantidadUsada)
+    if (!form.cantidadUsada || isNaN(cantidad) || cantidad <= 0) {
+      return toast.error('La cantidad debe ser mayor a 0')
+    }
+
+    // RC-005 FIX: no permitir cantidad mayor al stock disponible
+    const ingredienteSeleccionado = inventario.find(i => i.id == form.inventarioId)
+    if (ingredienteSeleccionado && cantidad > ingredienteSeleccionado.stockActual) {
+      return toast.error(`La cantidad supera el stock disponible (${ingredienteSeleccionado.stockActual} ${ingredienteSeleccionado.unidadMedida})`)
+    }
+
     try {
       await api.post('/recetas', {
         productoId: productoSel.id,
         inventarioId: Number(form.inventarioId),
-        cantidadUsada: Number(form.cantidadUsada),
+        cantidadUsada: cantidad,
         notas: form.notas || null
       })
       toast.success('Ingrediente agregado')
@@ -110,7 +121,6 @@ export default function Recetas() {
             </Card>
           ) : (
             <Card>
-              {/* Header del producto */}
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
                 <div>
                   <div style={{ fontFamily: 'Poppins, sans-serif', fontSize: '18px', fontWeight: 800, color: '#f0f0f0' }}>
@@ -159,7 +169,6 @@ export default function Recetas() {
                 </Table>
               )}
 
-              {/* Info */}
               {receta.length > 0 && (
                 <div style={{ marginTop: '16px', background: '#1e3a5f22', border: '1px solid #1e3a5f', borderRadius: '10px', padding: '12px 16px', fontSize: '12px', color: '#93c5fd' }}>
                   ℹ️ Cuando un pedido con <strong>{productoSel.nombre}</strong> pase a <strong> PREPARACIÓN</strong>, el sistema descontará automáticamente estos ingredientes del inventario.
@@ -170,7 +179,6 @@ export default function Recetas() {
         </div>
       </div>
 
-      {/* Modal agregar ingrediente */}
       {modal && (
         <Modal title={`Agregar ingrediente — ${productoSel?.nombre}`} onClose={() => { setModal(false); setForm({ inventarioId: '', cantidadUsada: '', notas: '' }) }} width="500px">
           <form onSubmit={guardar}>
@@ -189,7 +197,7 @@ export default function Recetas() {
                   Cantidad usada por porción
                 </label>
                 <input
-                  type="number" min="0.01" step="0.01" required
+                  type="number" min="0.001" step="0.001" required
                   value={form.cantidadUsada}
                   onChange={e => setForm({ ...form, cantidadUsada: e.target.value })}
                   placeholder="Ej: 200"
@@ -200,6 +208,11 @@ export default function Recetas() {
                 {form.inventarioId && (
                   <div style={{ fontSize: '11px', color: '#666', marginTop: '4px' }}>
                     Unidad: {inventario.find(i => i.id == form.inventarioId)?.unidadMedida}
+                    {form.inventarioId && (
+                      <span style={{ color: '#f97316', marginLeft: '8px' }}>
+                        Stock disponible: {inventario.find(i => i.id == form.inventarioId)?.stockActual}
+                      </span>
+                    )}
                   </div>
                 )}
               </div>

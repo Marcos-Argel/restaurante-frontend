@@ -99,7 +99,7 @@ export default function Pedidos() {
                   : <span style={{ color: '#444', fontSize: 12 }}>—</span>}
               </Td>
               <Td>{p.mesero}</Td>
-              <Td>{p.items?.length || 0}</Td>
+              <Td>{p.items?.reduce((acc, i) => acc + (i.cantidad || 1), 0) || 0}</Td>
               <Td><span style={{ color: '#f0f0f0', fontWeight: '600' }}>${Number(p.total || 0).toLocaleString()}</span></Td>
               <Td><Badge estado={p.estado} /></Td>
               <Td>
